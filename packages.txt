@@ -4,4 +4,3 @@ libgl1
 qpdf
 libqpdf-dev
 poppler-utils
-
