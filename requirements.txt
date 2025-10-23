@@ -1,15 +1,13 @@
 streamlit==1.36.0
 openai>=1.20.0
-
 # Sentence Transformers & Dependencies
 sentence-transformers==2.2.2
 torch
 huggingface-hub==0.17.0  # <-- ADD THIS LINE
-
 # FAISS & Dependencies
 faiss-cpu==1.7.4
 numpy<2.0
-
 # Document Loading
 unstructured[pdf]==0.11.8
+
 
