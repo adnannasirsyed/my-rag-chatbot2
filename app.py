@@ -110,7 +110,7 @@ def load_text_from_bytes(name: str, data: bytes) -> str:
                  
             return "\n".join([getattr(e, "text", "") for e in elements if getattr(e, "text", "")])
 
-     except Exception as e:
+        except Exception as e:
             # --- MODIFIED ERROR HANDLING ---
             st.error(f"Critical Error parsing PDF {name}: {e}")
             # Print full traceback to Streamlit logs
@@ -339,4 +339,5 @@ if prompt := st.chat_input("Ask a question about your documents..."):
                 print(f"Error: {e}")
                 import traceback
                 traceback.print_exc()
+
 
