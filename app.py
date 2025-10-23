@@ -100,13 +100,25 @@ def load_text_from_bytes(name: str, data: bytes) -> str:
             with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                 tmp.write(data)
                 tmp.flush()
-                # Use unstructured to partition the PDF
                 elements = partition_pdf(filename=tmp.name)
+            
+            # --- ADD A CHECK FOR EMPTY ELEMENTS ---
+            if not elements:
+                 print(f"Warning: partition_pdf returned no elements for file {name}.")
+                 st.warning(f"No text elements found in PDF: {name}")
+                 return ""
+                 
             return "\n".join([getattr(e, "text", "") for e in elements if getattr(e, "text", "")])
-        except Exception as e:
-            st.error(f"Error parsing PDF {name}: {e}")
-            return ""
-    return ""
+
+     except Exception as e:
+            # --- MODIFIED ERROR HANDLING ---
+            st.error(f"Critical Error parsing PDF {name}: {e}")
+            # Print full traceback to Streamlit logs
+            print(f"CRITICAL ERROR parsing PDF {name}:")
+            import traceback
+            traceback.print_exc() 
+            # --- END MODIFICATION ---
+            return "" # Return empty string on failure
 
 # --- 7. Caching Functions (Changes B.2 & C) ---
 
@@ -327,3 +339,4 @@ if prompt := st.chat_input("Ask a question about your documents..."):
                 print(f"Error: {e}")
                 import traceback
                 traceback.print_exc()
+
