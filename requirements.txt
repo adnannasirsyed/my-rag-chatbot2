@@ -14,8 +14,4 @@ numpy<2.0
 unstructured[pdf]==0.11.8
 matplotlib
 deprecated>=1.2.14
-pdfminer.six==20221105
-
-
-
-
+pdfminer.six>=20231228
