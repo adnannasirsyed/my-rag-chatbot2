@@ -14,4 +14,5 @@ numpy<2.0
 unstructured[pdf]==0.11.8
 matplotlib
 deprecated>=1.2.14
-pdfminer.six>=20231228
+pdfminer.six==20221105 # <-- Revert to this specific version
+pikepdf==8.13.0        # <-- Add specific version for pikepdf
