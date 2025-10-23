@@ -9,7 +9,7 @@ import streamlit as st
 import faiss
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.cross_encoder import CrossEncoder
-from unstructured.partition.pdf import partition_pdf
+#from unstructured.partition.pdf import partition_pdf
 from openai import OpenAI
 import numpy as np
 
@@ -344,6 +344,7 @@ if prompt := st.chat_input("Ask a question about your documents..."):
                 print(f"Error: {e}")
                 import traceback
                 traceback.print_exc()
+
 
 
 
