@@ -1,4 +1,5 @@
 import os
+import fitz # PyMuPDF - ADD THIS IMPORT AT THE TOP OF app.py
 import re
 import json
 import hashlib
@@ -94,32 +95,36 @@ def load_text_from_bytes(name: str, data: bytes) -> str:
     suffix = Path(name).suffix.lower()
     if suffix in [".txt", ".md"]:
         return data.decode(errors="ignore")
+
+    # --- MODIFIED PDF HANDLING ---
     if suffix == ".pdf":
         try:
-            from tempfile import NamedTemporaryFile
-            with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                tmp.write(data)
-                tmp.flush()
-                elements = partition_pdf(filename=tmp.name)
-            
-            # --- ADD A CHECK FOR EMPTY ELEMENTS ---
-            if not elements:
-                 print(f"Warning: partition_pdf returned no elements for file {name}.")
-                 st.warning(f"No text elements found in PDF: {name}")
-                 return ""
-                 
-            return "\n".join([getattr(e, "text", "") for e in elements if getattr(e, "text", "")])
+            # Use fitz (PyMuPDF) to open the PDF directly from bytes
+            with fitz.open(stream=data, filetype="pdf") as doc:
+                full_text = ""
+                for page_num in range(len(doc)):
+                    page = doc.load_page(page_num)
+                    full_text += page.get_text("text") # Extract text
+
+            if not full_text.strip():
+                print(f"Warning: PyMuPDF (fitz) extracted no text from file {name}.")
+                st.warning(f"No text extracted from PDF: {name} using PyMuPDF.")
+                return ""
+
+            return full_text
 
         except Exception as e:
-            # --- MODIFIED ERROR HANDLING ---
-            st.error(f"Critical Error parsing PDF {name}: {e}")
-            # Print full traceback to Streamlit logs
-            print(f"CRITICAL ERROR parsing PDF {name}:")
+            # Keep the detailed error logging
+            st.error(f"Critical Error parsing PDF {name} with PyMuPDF: {e}")
+            print(f"CRITICAL ERROR parsing PDF {name} with PyMuPDF:")
             import traceback
             traceback.print_exc() 
-            # --- END MODIFICATION ---
             return "" # Return empty string on failure
+    # --- END MODIFICATION ---
 
+    st.warning(f"Unsupported file type: {name}") # Add warning for other types
+    return ""
+    
 # --- 7. Caching Functions (Changes B.2 & C) ---
 
 @st.cache_resource
@@ -339,5 +344,6 @@ if prompt := st.chat_input("Ask a question about your documents..."):
                 print(f"Error: {e}")
                 import traceback
                 traceback.print_exc()
+
 
 
