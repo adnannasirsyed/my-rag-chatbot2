@@ -1,7 +1,7 @@
 libgomp1
-freeglut3-dev
-libgl1
-qpdf
-libqpdf-dev
-poppler-utils
-tesseract-ocr
+#freeglut3-dev
+#libgl1
+#qpdf
+#libqpdf-dev
+#poppler-utils
+#tesseract-ocr
