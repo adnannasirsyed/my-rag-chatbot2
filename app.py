@@ -97,9 +97,14 @@ def load_text_from_bytes(name: str, data: bytes) -> str:
     """Loads text from uploaded file bytes."""
     suffix = Path(name).suffix.lower()
     if suffix in [".txt", ".md"]:
-        return data.decode(errors="ignore")
+        try:
+            return data.decode(errors="ignore")
+        except Exception as e:
+            st.error(f"Error decoding text file {name}: {e}")
+            print(f"CRITICAL ERROR decoding text file {name}:")
+            traceback.print_exc()
+            return ""
 
-    # --- MODIFIED PDF HANDLING with PyMuPDF/fitz ---
     if suffix == ".pdf":
         try:
             # Use fitz (PyMuPDF) to open the PDF directly from bytes
@@ -107,18 +112,8 @@ def load_text_from_bytes(name: str, data: bytes) -> str:
                 full_text = ""
                 for page_num in range(len(doc)):
                     page = doc.load_page(page_num)
-                    # Try to extract text, first normally, then with OCR flags if no text is found
-                    text = page.get_text("text")
-                    if not text.strip():
-                        # If get_text() fails, log and try to OCR (if tesseract is installed)
-                        print(f"Warning: No text found on page {page_num} of {name}. Trying OCR...")
-                        # This flag will use Tesseract if `poppler-utils` and `tesseract-ocr` are in packages.txt
-                        # Note: This is a simplified OCR attempt. More robust OCR uses get_drawings, etc.
-                        # For now, let's see if simple text extraction works.
-                        text = page.get_text("text", flags=fitz.TEXTFLAGS_SEARCH)
+                    full_text += page.get_text("text")  # Extract text
 
-                    full_text += text
-                    
             if not full_text.strip():
                 print(f"Warning: PyMuPDF (fitz) extracted no text from file {name}.")
                 st.warning(f"No text extracted from PDF: {name}. It might be an image-only PDF.")
@@ -132,7 +127,6 @@ def load_text_from_bytes(name: str, data: bytes) -> str:
             print(f"CRITICAL ERROR parsing PDF {name} with PyMuPDF:")
             traceback.print_exc()
             return ""  # Return empty string on failure
-    # --- END MODIFICATION ---
 
     st.warning(f"Unsupported file type: {name}")  # Add warning for other types
     return ""
@@ -144,7 +138,7 @@ def load_text_from_bytes(name: str, data: bytes) -> str:
 def load_and_index_files(_uploaded_files: Tuple[st.runtime.uploaded_file_manager.UploadedFile, ...]) -> Optional[
     Tuple[faiss.Index, List[Dict], SentenceTransformer]]:
     """
-    (Change B.2) Caches the entire data loading and indexing pipeline.
+    Caches the entire data loading and indexing pipeline.
     Accepts a tuple of UploadedFile objects for safe caching.
     """
     if not _uploaded_files:
@@ -210,7 +204,7 @@ def load_and_index_files(_uploaded_files: Tuple[st.runtime.uploaded_file_manager
 
 @st.cache_resource
 def load_reranker() -> CrossEncoder:
-    """(Change C) Caches the reranker model."""
+    """Caches the reranker model."""
     with st.spinner(f"Loading reranker model {RERANK_MODEL}..."):
         return CrossEncoder(RERANK_MODEL)
 
@@ -229,7 +223,7 @@ def retrieve(query: str, k: int, _index: faiss.Index, _embedder: SentenceTransfo
 
 
 def rerank(query: str, hits: List[Dict], n: int, _reranker: CrossEncoder) -> List[Dict]:
-    """(Change C) Reranks retrieved hits using a CrossEncoder."""
+    """Reranks retrieved hits using a CrossEncoder."""
     if not hits:
         return []
     pairs = [(query, hit['text']) for hit in hits]
@@ -270,10 +264,9 @@ def build_messages(query: str, context_chunks: List[Dict], tone: str, role: str,
     ]
 
 
-# --- 9. Main App Logic & Chat Interface (Change A) ---
+# --- 9. Main App Logic & Chat Interface ---
 
 # Pass the tuple of file objects directly to the cached function
-# This function will only rerun if the tuple of uploaded files changes
 data = load_and_index_files(tuple(uploaded_files))
 reranker = load_reranker()
 
@@ -326,13 +319,13 @@ if prompt := st.chat_input("Ask a question about your documents..."):
                 # 1. Retrieve
                 hits = retrieve(prompt, TOP_K, index, embedder, all_docs)
 
-                # 2. Rerank (Change C)
+                # 2. Rerank
                 top_reranked_hits = rerank(prompt, hits, RERANK_TOP_N, reranker)
 
                 # 3. Build Prompt
                 messages = build_messages(prompt, top_reranked_hits, tone, role, asked_accessibility)
 
-                # 4. Generate (Change B.1)
+                # 4. Generate
                 completion = client.chat.completions.create(
                     model=model_name,
                     messages=messages,
